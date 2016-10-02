@@ -10,9 +10,11 @@ import (
 
 func projectHandler() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		io.WriteString(w, "<h2>The Week Project</h2>\n")
 		io.WriteString(w, "<p>This project is to create the week project.</p>\n")
 		io.WriteString(w, "<p>Started: 11:10 AM - 2 Oct 2016</p>\n")
+		io.WriteString(w, "<p>(Ends)</p>\n")
 	}
 
 	return http.HandlerFunc(handler)
@@ -20,9 +22,11 @@ func projectHandler() http.Handler {
 
 func userHandler() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		io.WriteString(w, "<h2>User : chilts</h2>\n")
 		io.WriteString(w, "<p>My projects:</p>\n")
 		io.WriteString(w, "<ul><li><a href='week-project'>Week Project</a></li></ul>\n")
+		io.WriteString(w, "<p>(Ends)</p>\n")
 	}
 
 	return http.HandlerFunc(handler)
@@ -30,8 +34,11 @@ func userHandler() http.Handler {
 
 func handler() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "<p>Hello, The Week Project!\n")
-		io.WriteString(w, "<p>See the first ever <a href='/chilts/week-prroject'>Week Project</a>.<p>\n")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		io.WriteString(w, "<p>Hello, The Week Project!<p>\n")
+		io.WriteString(w, "<p>See the first ever <a href='/chilts/week-project'>Week Project</a>.<p>\n")
+		io.WriteString(w, "<p>From the first ever user <a href='/chilts/'>chilts</a>.<p>\n")
+		io.WriteString(w, "<p>(Ends)</p>\n")
 	}
 
 	return http.HandlerFunc(handler)
