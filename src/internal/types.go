@@ -10,9 +10,9 @@ type User struct {
 }
 
 type Project struct {
+	Username string
 	Name     string
 	Title    string
-	Owner    string
 	Inserted time.Time
 	Updated  time.Time
 }

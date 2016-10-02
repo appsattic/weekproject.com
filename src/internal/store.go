@@ -1,13 +1,48 @@
 package internal
 
 import (
+	"errors"
+
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+)
+
+var (
+	ErrUserNameExists    = errors.New("Username already exists")
+	ErrProjectNameExists = errors.New("Project name already exists")
 )
 
 type MongoDbStore struct {
 	url     string
 	session *mgo.Session
+}
+
+func ensureIndexes(session *mgo.Session) error {
+	var err error
+
+	// users
+	userIndex := mgo.Index{
+		Key:    []string{"name"},
+		Unique: true,
+	}
+	users := session.DB("weekproject").C("users")
+	err = users.EnsureIndex(userIndex)
+	if err != nil {
+		return err
+	}
+
+	// projects
+	projectIndex := mgo.Index{
+		Key:    []string{"username", "name"},
+		Unique: true,
+	}
+	projects := session.DB("weekproject").C("projects")
+	err = projects.EnsureIndex(projectIndex)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewMongoDbStore(url string) (*MongoDbStore, error) {
@@ -16,6 +51,13 @@ func NewMongoDbStore(url string) (*MongoDbStore, error) {
 		return nil, err
 	}
 
+	// get the collections and ensure unique indexes on name
+	ensureIndexes(session)
+	if err != nil {
+		return nil, err
+	}
+
+	// create the store and return it
 	store := MongoDbStore{
 		url:     url,
 		session: session,
@@ -37,7 +79,11 @@ func (s *MongoDbStore) GetUser(name string) (*User, error) {
 
 func (s *MongoDbStore) InsUser(user User) error {
 	users := s.session.DB("weekproject").C("users")
-	return users.Insert(user)
+	err := users.Insert(user)
+	if mgo.IsDup(err) {
+		return ErrUserNameExists
+	}
+	return err
 }
 
 func (s *MongoDbStore) GetProject(name string) (*Project, error) {
@@ -54,7 +100,11 @@ func (s *MongoDbStore) GetProject(name string) (*Project, error) {
 
 func (s *MongoDbStore) InsProject(project Project) error {
 	projects := s.session.DB("weekproject").C("projects")
-	return projects.Insert(project)
+	err := projects.Insert(project)
+	if mgo.IsDup(err) {
+		return ErrProjectNameExists
+	}
+	return err
 }
 
 func (s *MongoDbStore) Close() {
