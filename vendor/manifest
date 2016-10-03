@@ -8,6 +8,12 @@
 			"branch": "master"
 		},
 		{
+			"importpath": "github.com/chilts/temple",
+			"repository": "https://github.com/chilts/temple",
+			"revision": "32b9caaed6834e4bde797da65f709161e42dabe8",
+			"branch": "master"
+		},
+		{
 			"importpath": "gopkg.in/mgo.v2",
 			"repository": "https://gopkg.in/mgo.v2",
 			"revision": "b6121c6199b7beecde08e6853f256a6475fe8031",
