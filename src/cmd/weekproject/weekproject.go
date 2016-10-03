@@ -1,12 +1,12 @@
 package main
 
 import (
-	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/bmizerany/pat"
+	"github.com/chilts/temple"
 
 	"internal"
 )
@@ -17,8 +17,16 @@ func check(err error) {
 	}
 }
 
-func projectHandler(store internal.StoreService) http.Handler {
+func projectHandler(tmpl *temple.Temple, store internal.StoreService) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		// get the template
+		projectTmpl, err := tmpl.Get("project.html")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
 		// see if we can get this user
 		userName := r.URL.Query().Get(":userName")
 
@@ -48,18 +56,39 @@ func projectHandler(store internal.StoreService) http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		io.WriteString(w, "<h2>"+project.Title+"</h2>\n")
-		io.WriteString(w, "<p>This project is to create the week project.</p>\n")
-		io.WriteString(w, "<p>Started: 11:10 AM - 2 Oct 2016</p>\n")
-		io.WriteString(w, "<p>(Ends)</p>\n")
+		// create some data
+		data := struct {
+			Title   string
+			User    *internal.User
+			Project *internal.Project
+		}{
+			"The Week Project",
+			user,
+			project,
+		}
+
+		// execute the template
+		err = projectTmpl.Execute(w, data)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	return http.HandlerFunc(handler)
 }
 
-func userHandler(store internal.StoreService) http.Handler {
+func userHandler(tmpl *temple.Temple, store internal.StoreService) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
+		// get the template
+		userTmpl, err := tmpl.Get("user.html")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
 		// see if we can get this user
 		userName := r.URL.Query().Get(":userName")
 
@@ -74,23 +103,51 @@ func userHandler(store internal.StoreService) http.Handler {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		io.WriteString(w, "<h2>User : "+user.Name+"</h2>\n")
-		io.WriteString(w, "<p>My projects:</p>\n")
-		io.WriteString(w, "<ul><li><a href='week-project'>Week Project</a></li></ul>\n")
-		io.WriteString(w, "<p>(Ends)</p>\n")
+		// create some data
+		data := struct {
+			Title string
+			User  *internal.User
+		}{
+			"The Week Project",
+			user,
+		}
+
+		// execute the template
+		err = userTmpl.Execute(w, data)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	return http.HandlerFunc(handler)
 }
 
-func handler(store internal.StoreService) http.Handler {
+func handler(tmpl *temple.Temple, store internal.StoreService) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		io.WriteString(w, "<p>Hello, The Week Project!<p>\n")
-		io.WriteString(w, "<p>See the first ever <a href='/chilts/week-project'>Week Project</a>.<p>\n")
-		io.WriteString(w, "<p>From the first ever user <a href='/chilts/'>chilts</a>.<p>\n")
-		io.WriteString(w, "<p>(Ends)</p>\n")
+		// get the template
+		index, err := tmpl.Get("index.html")
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		// create some data
+		data := struct {
+			Title string
+		}{
+			"The Week Project",
+		}
+
+		// execute the template
+		err = index.Execute(w, data)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, "500 - Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	return http.HandlerFunc(handler)
@@ -101,6 +158,10 @@ func main() {
 
 	log.Println("Started WeekProject Server")
 
+	// read the templates
+	tmpl, err := temple.NewTemple("templates", "base.html", false)
+	check(err)
+
 	// connect to the store
 	mongoDbUrl := os.Getenv("MONGODB_URL")
 	store, err := internal.NewMongoDbStore(mongoDbUrl)
@@ -110,9 +171,9 @@ func main() {
 	// the router
 	mux := pat.New()
 
-	mux.Get("/:userName/:projectName", projectHandler(store))
-	mux.Get("/:userName/", userHandler(store))
-	mux.Get("/", handler(store))
+	mux.Get("/:userName/:projectName", projectHandler(tmpl, store))
+	mux.Get("/:userName/", userHandler(tmpl, store))
+	mux.Get("/", handler(tmpl, store))
 
 	http.Handle("/", mux)
 	err = http.ListenAndServe(":8504", nil)
